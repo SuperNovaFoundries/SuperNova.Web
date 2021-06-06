@@ -1,0 +1,39 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      - npm install -g npm@7.16.0
+      - npm install -g @angular/cli@12.0.3
+      - npm install -g bestzip
+      - cd lambdas/upload_packages
+      - npm install
+      - cd ../..
+  pre_build:
+    commands:
+      - export DLLVERSION=$(date +1.0.%y%j.%H%M)
+      # - sed -i "s/REPLACEVERSION/$DLLVERSION/g" Supernova.Web.template
+      - echo "<BuildInfo>">> buildinfo.xml
+      - echo "<DLLVERSION>"$DLLVERSION"</DLLVERSION>">> buildinfo.xml
+      - echo </BuildInfo>">> buildinfo.xml
+  build:
+    commands:
+      - cd lambdas/upload_packages
+      - bestzip ../UploadApiGatewaySDK.$DLLVERSION.zip -r index.js *
+      - cd ../..
+      - npm run build
+  post_build:
+    commands:
+      - mv dist distribution
+      - mkdir dist
+      - mkdir dist/$DLLVERSION
+      - rm -rf dist/$DLLVERSION/dist/codebuild
+      - mkdir -p dist/$DLLVERSION/build_resources/sourcemap
+      - mkdir dist/$DLLVERSION/build_resources/config
+      - mv dist/$DLLVERSION/dist/assets/config/* dist/$DLLVERSION/build_resources/config
+      - mkdir dist/$DLLVERSION/build_resources/lambdas/upload_packages
+      - mv lambdas/UploadApiGatewaySDK.$DLLVERSION.zip dist/$DLLVERSION/build_resources/config/lambdas/UploadApiGatewaySDK.$DLLVERSION.zip
+      # - sed -i "s/$/`echo -e \\\r`/" ../dist/$DLLVERSION/build_resources/git_log.txt
+artifacts:
+  files:
+    - "**/*"
+  base-directory: dist  
